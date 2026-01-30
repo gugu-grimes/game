@@ -1,0 +1,242 @@
+[gd_scene load_steps=8 format=3 uid="uid://dh7g8f2k9lb1m"]
+
+[ext_resource type="Script" path="res://scenes/battle/TestBattle.gd" id="1_test"]
+[ext_resource type="Script" path="res://scripts/core/BattleManager.gd" id="2_battle_mgr"]
+[ext_resource type="Script" path="res://scripts/core/CharacterBase.gd" id="3_character"]
+[ext_resource type="Script" path="res://scripts/core/HandManager.gd" id="4_hand_mgr"]
+[ext_resource type="PackedScene" uid="uid://c5yv8xh3qbm4k" path="res://scenes/card/CardBase.tscn" id="5_card_base"]
+[ext_resource type="PackedScene" uid="uid://player_panel_001" path="res://scenes/character/PlayerPanel.tscn" id="6_player_panel"]
+[ext_resource type="PackedScene" uid="uid://enemy_panel_001" path="res://scenes/character/EnemyPanel.tscn" id="7_enemy_panel"]
+
+[node name="BattleScene" type="Node2D"]
+script = ExtResource("1_test")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -10
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.12, 0.15, 1)
+
+[node name="BattleManager" type="Node" parent="."]
+script = ExtResource("2_battle_mgr")
+
+[node name="Player" type="Node2D" parent="."]
+position = Vector2(200, 400)
+script = ExtResource("3_character")
+max_hp = 80
+
+[node name="Enemy" type="Node2D" parent="."]
+position = Vector2(800, 300)
+script = ExtResource("3_character")
+max_hp = 50
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="TopBar" type="Panel" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 60.0
+grow_horizontal = 2
+
+[node name="TopBarBG" type="ColorRect" parent="UI/TopBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.1, 0.1, 0.12, 0.9)
+
+[node name="DrawPileCounter" type="VBoxContainer" parent="UI/TopBar"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -25.0
+offset_right = 80.0
+offset_bottom = 25.0
+grow_vertical = 2
+alignment = 1
+
+[node name="CountLabel" type="Label" parent="UI/TopBar/DrawPileCounter"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "10"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="UI/TopBar/DrawPileCounter"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "抽牌堆"
+horizontal_alignment = 1
+
+[node name="EnergyOrb" type="Control" parent="UI/TopBar"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -25.0
+offset_right = 40.0
+offset_bottom = 25.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="OrbBG" type="ColorRect" parent="UI/TopBar/EnergyOrb"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -22.0
+offset_top = -22.0
+offset_right = 22.0
+offset_bottom = 22.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.5, 0.9, 1)
+
+[node name="EnergyLabel" type="Label" parent="UI/TopBar/EnergyOrb"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "3/3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DiscardPileCounter" type="VBoxContainer" parent="UI/TopBar"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -25.0
+offset_right = -140.0
+offset_bottom = 25.0
+grow_horizontal = 0
+grow_vertical = 2
+alignment = 1
+
+[node name="CountLabel" type="Label" parent="UI/TopBar/DiscardPileCounter"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="UI/TopBar/DiscardPileCounter"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "弃牌堆"
+horizontal_alignment = 1
+
+[node name="EndTurnButton" type="Button" parent="UI/TopBar"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -130.0
+offset_top = -20.0
+offset_right = -20.0
+offset_bottom = 20.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_font_sizes/font_size = 16
+text = "结束回合"
+
+[node name="CharacterArea" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 60.0
+offset_bottom = -220.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlayerPanel" parent="UI/CharacterArea" instance=ExtResource("6_player_panel")]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 50.0
+offset_top = -150.0
+offset_right = 250.0
+offset_bottom = 150.0
+grow_vertical = 2
+
+[node name="EnemyPanel" parent="UI/CharacterArea" instance=ExtResource("7_enemy_panel")]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -175.0
+offset_right = -80.0
+offset_bottom = 175.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="HandArea" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -220.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="HandBG" type="ColorRect" parent="UI/HandArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.1, 0.8)
+
+[node name="HandContainer" type="Control" parent="UI/HandArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HandManager" type="Node" parent="UI"]
+script = ExtResource("4_hand_mgr")
+card_ui_scene = ExtResource("5_card_base")
+
+[node name="TurnIndicator" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 70.0
+offset_right = 100.0
+offset_bottom = 100.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 20
+text = "玩家回合"
+horizontal_alignment = 1
+vertical_alignment = 1

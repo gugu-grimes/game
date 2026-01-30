@@ -1,0 +1,120 @@
+[gd_scene load_steps=2 format=3 uid="uid://c5yv8xh3qbm4k"]
+
+[ext_resource type="Script" path="res://scripts/core/CardUI.gd" id="1_card_ui"]
+
+[node name="CardUI" type="Control"]
+custom_minimum_size = Vector2(140, 200)
+anchors_preset = 0
+offset_right = 140.0
+offset_bottom = 200.0
+mouse_filter = 0
+script = ExtResource("1_card_ui")
+
+[node name="CardBackground" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Border" type="ColorRect" parent="CardBackground"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="Inner" type="ColorRect" parent="CardBackground/Border"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.15, 0.15, 0.2, 1)
+
+[node name="CostCircle" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 28.0
+offset_bottom = 28.0
+
+[node name="CostBG" type="ColorRect" parent="CostCircle"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.8, 0.6, 0.2, 1)
+
+[node name="CostLabel" type="Label" parent="CostCircle"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 20
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 28.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "卡牌名称"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="IconRect" type="TextureRect" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="IconPlaceholder" type="ColorRect" parent="VBoxContainer/IconRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.25, 0.25, 0.3, 1)
+
+[node name="Separator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="DescLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 11
+text = "卡牌描述文本"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
