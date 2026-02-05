@@ -2,3 +2,6 @@
 Godot_v4.6-stable_win64/
 *.exe
 
+# Godot cache & exports
+.godot/
+.export/
