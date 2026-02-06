@@ -10,6 +10,7 @@ enum BattleState {INIT, PLAYER_TURN, ENEMY_TURN, VICTORY, DEFEAT}
 @export var end_turn_button: Button
 @export var hand_container: Control # 改为Control支持弧形布局
 @export var damage_number_scene: PackedScene
+@export var meridian_container: Control # 经脉槽UI
 
 var current_state: BattleState = BattleState.INIT
 var player_energy: int = 3
@@ -29,8 +30,6 @@ signal turn_started(is_player: bool)
 signal battle_ended(victory: bool)
 
 func _ready() -> void:
-	# 注意：player/enemy/hand_manager 等引用可能在 TestBattle._ready() 中设置
-	# 所以这里只进行基本的信号连接
 	pass
 
 ## 初始化战斗引用（由 TestBattle 调用）
@@ -74,7 +73,6 @@ func start_battle(starter_deck: Array[CardData], enemy_data: EnemyData) -> void:
 	else:
 		print("使用初始牌组（测试模式）")
 		draw_pile = starter_deck.duplicate()
-		# 初始化 RunManager 以便测试
 		RunManager.start_new_run(starter_deck)
 	
 	draw_pile.shuffle()
@@ -82,6 +80,11 @@ func start_battle(starter_deck: Array[CardData], enemy_data: EnemyData) -> void:
 	hand.clear()
 	exhaust_pile.clear()
 	player_momentum = 0
+	
+	# 清空并初始化经脉（如果是新战斗）
+	player.meridians.clear()
+	if meridian_container and meridian_container.has_method("update_slots"):
+		meridian_container.update_slots(player.meridians)
 	
 	if enemy and enemy_data:
 		enemy.max_hp = enemy_data.max_hp
@@ -136,7 +139,11 @@ func play_card(card: CardData, target: CharacterBase = null) -> bool:
 	energy_changed.emit(player_energy, max_energy)
 	hand.erase(card)
 	execute_card_effect(card, target)
-	if card.is_exhaust:
+	
+	# 内功牌进入经脉槽，不进入弃牌堆/消耗堆（除非有特殊逻辑）
+	if card.type == CardData.CardType.POWER:
+		pass 
+	elif card.is_exhaust:
 		exhaust_pile.append(card)
 		print("%s 被移出战斗" % card.card_name)
 	else:
@@ -177,14 +184,41 @@ func execute_card_effect(card: CardData, target: CharacterBase) -> void:
 					else:
 						player.add_status(keyword, stacks)
 		CardData.CardType.POWER:
-			if card.keywords.size() > 0:
-				player.add_status(card.keywords[0], card.base_value)
+			# 内功现在装备到经脉
+			player.equip_meridian(card)
+			if meridian_container and meridian_container.has_method("update_slots"):
+				meridian_container.update_slots(player.meridians)
 	
 	if card.type != CardData.CardType.ATTACK and card.momentum_gain != 0:
 		add_momentum(card.momentum_gain)
 
+func trigger_player_meridians() -> void:
+	print("触发经脉效果...")
+	for card in player.meridians:
+		_apply_meridian_effect(card)
+
+func _apply_meridian_effect(card: CardData) -> void:
+	# 简单的被动效果逻辑
+	if card.keywords.has("retain_block"):
+		player.add_block(card.base_value)
+		show_damage_number(player, card.base_value, "block")
+	elif card.keywords.has("strength"):
+		# 力量可能需要是永久的，这里简单处理为每回合加力量? 
+		# 或者内功本身就是"力量+X"，这里每回合都加会太强。
+		# 假设内功是"回合开始时获得X力量"
+		player.add_status("strength", card.base_value)
+	else:
+		# 默认：如果base_value > 0且是Power，视为获得护体（如果没有特定keywords）
+		if card.base_value > 0:
+			player.add_block(card.base_value)
+			show_damage_number(player, card.base_value, "block")
+
 func end_player_turn() -> void:
 	print("\n玩家结束回合")
+	
+	# 触发经脉效果
+	trigger_player_meridians()
+	
 	# 丢弃手牌
 	if hand.size() > 0:
 		for i in range(hand.size() - 1, -1, -1):

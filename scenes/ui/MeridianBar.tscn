@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://meridian_bar"]
+
+[ext_resource type="Script" path="res://scripts/ui/MeridianBar.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://meridian_slot" path="res://scenes/ui/MeridianSlot.tscn" id="2_slot"]
+
+[node name="MeridianBar" type="HBoxContainer"]
+offset_right = 196.0
+offset_bottom = 60.0
+theme_override_constants/separation = 10
+script = ExtResource("1_script")
+slot_scene = ExtResource("2_slot")

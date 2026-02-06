@@ -5,11 +5,13 @@ class_name CharacterBase
 signal hp_changed(new_hp: int, max_hp: int)
 signal block_changed(new_block: int)
 signal died()
+signal meridians_updated(cards: Array[CardData])
 
 ## 属性
 @export var max_hp: int = 100
 var current_hp: int = 100
 var block: int = 0
+var meridians: Array[CardData] = [] # Max 3
 
 ## 状态效果（Buff/Debuff）
 var status_effects: Dictionary = {} # {status_name: stacks}
@@ -85,6 +87,16 @@ func clear_block() -> void:
 	if not status_effects.has("retain_block"):
 		block = 0
 		block_changed.emit(block)
+
+## 装备经脉（内功）
+func equip_meridian(card: CardData) -> void:
+	if meridians.size() >= 3:
+		# 简单的队列机制：移除最早的一个
+		meridians.pop_front()
+	
+	meridians.append(card)
+	print("%s 装备了内功: %s" % [name, card.card_name])
+	meridians_updated.emit(meridians)
 
 ## 死亡
 func die() -> void:

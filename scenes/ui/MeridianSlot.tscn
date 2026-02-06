@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3 uid="uid://meridian_slot"]
+
+[ext_resource type="Script" path="res://scripts/ui/MeridianSlot.gd" id="1_script"]
+
+[node name="MeridianSlot" type="PanelContainer"]
+custom_minimum_size = Vector2(60, 60)
+offset_right = 60.0
+offset_bottom = 60.0
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="IconRect" type="TextureRect" parent="MarginContainer"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Tooltip" type="PanelContainer" parent="."]
+visible = false
+z_index = 100
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Tooltip"]
+layout_mode = 2
+text = "Tooltip"
+horizontal_alignment = 1

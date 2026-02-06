@@ -18,8 +18,16 @@ extends Node2D
 @onready var discard_pile_label = $UI/TopBar/DiscardPileCounter/CountLabel
 @onready var turn_indicator = $UI/TurnIndicator
 
+const MERIDIAN_BAR_SCENE = preload("res://scenes/ui/MeridianBar.tscn")
+
 func _ready() -> void:
 	print("初始化战斗场景...")
+	
+	# 创建并添加经脉槽UI
+	var meridian_bar = MERIDIAN_BAR_SCENE.instantiate()
+	$UI/CharacterArea.add_child(meridian_bar)
+	# 手动调整位置（假设PlayerPanel在左侧）
+	meridian_bar.position = Vector2(20, 320) # 在角色面板下方
 	
 	# 设置 BattleManager 的引用
 	battle_manager.player = player
@@ -28,6 +36,7 @@ func _ready() -> void:
 	battle_manager.energy_label = energy_label
 	battle_manager.end_turn_button = end_turn_button
 	battle_manager.hand_container = hand_container
+	battle_manager.meridian_container = meridian_bar
 	
 	# 初始化战斗引用（连接信号等）
 	battle_manager.setup_battle_refs()
