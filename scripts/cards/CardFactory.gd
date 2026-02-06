@@ -63,3 +63,28 @@ static func create_test_enemy() -> EnemyData:
 	enemy.add_move(EnemyData.IntentType.DEFEND, 0, 6, 2) # 30%防御
 	
 	return enemy
+
+## 生成一张随机卡牌用于奖励
+static func create_random_reward_card() -> CardData:
+	var pool = [
+		{"name": "重斩", "cost": 2, "type": CardData.CardType.ATTACK, "val": 14, "desc": "造成 14 点伤害"},
+		{"name": "铁布衫", "cost": 2, "type": CardData.CardType.SKILL, "val": 12, "desc": "获得 12 点护体"},
+		{"name": "飞刀", "cost": 0, "type": CardData.CardType.ATTACK, "val": 4, "desc": "造成 4 点伤害"},
+		{"name": "吐纳", "cost": 0, "type": CardData.CardType.SKILL, "val": 3, "desc": "获得 3 点护体"},
+		{"name": "开碑手", "cost": 2, "type": CardData.CardType.ATTACK, "val": 10, "desc": "造成 10 点伤害，施加 2 层虚弱", "sec": 2, "kw": ["weak"]},
+		{"name": "金钟罩", "cost": 2, "type": CardData.CardType.POWER, "val": 2, "desc": "每回合结束获得 2 点护体", "kw": ["retain_block"]}, # 临时借用 retain_block 概念
+		{"name": "狂暴", "cost": 1, "type": CardData.CardType.POWER, "val": 2, "desc": "所有攻击伤害 +2", "kw": ["strength"]}
+	]
+	
+	var data = pool.pick_random()
+	var card = CardData.new()
+	card.id = "reward_%d" % randi()
+	card.card_name = data.name
+	card.cost = data.cost
+	card.type = data.type
+	card.base_value = data.val
+	card.description = data.desc
+	if data.has("sec"): card.secondary_value = data.sec
+	if data.has("kw"): card.keywords = PackedStringArray(data.kw)
+	
+	return card

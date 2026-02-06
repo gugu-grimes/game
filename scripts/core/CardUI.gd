@@ -16,6 +16,7 @@ var is_dragging: bool = false
 var original_position: Vector2
 
 signal card_played(card: CardData)
+signal fusion_dropped(source_card: CardData, target_ui: CardUI)
 
 func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
@@ -66,14 +67,18 @@ func update_display() -> void:
 
 func _on_mouse_entered() -> void:
 	is_hovered = true
-	var tween = create_tween()
-	tween.tween_property(self, "scale", Vector2(1.1, 1.1), 0.2)
+	# 仅在非拖拽状态下放大
+	if not is_dragging:
+		var tween = create_tween()
+		tween.tween_property(self, "scale", Vector2(1.1, 1.1), 0.2)
+		z_index = 10
 
 func _on_mouse_exited() -> void:
 	is_hovered = false
 	if not is_dragging:
 		var tween = create_tween()
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2)
+		z_index = 0
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -81,14 +86,37 @@ func _gui_input(event: InputEvent) -> void:
 			if event.pressed:
 				is_dragging = true
 				original_position = global_position
+				z_index = 100 # 拖拽时层级最高
 			else:
 				if is_dragging:
 					is_dragging = false
-					if global_position.y < original_position.y - 100:
-						print("尝试打出卡牌: %s" % card_data.card_name)
-						card_played.emit(card_data)
-					else:
-						global_position = original_position
-					scale = Vector2(1.0, 1.0)
+					_handle_drag_end()
+					
 	elif event is InputEventMouseMotion and is_dragging:
 		global_position += event.relative
+
+func _handle_drag_end() -> void:
+	# 1. 检查是否打出卡牌（向上拖动）
+	if global_position.y < original_position.y - 100:
+		print("尝试打出卡牌: %s" % card_data.card_name)
+		card_played.emit(card_data)
+		scale = Vector2(1.0, 1.0)
+		return
+	
+	# 2. 检查是否拖拽到另一张卡牌上（融合）
+	var parent = get_parent()
+	if parent:
+		for child in parent.get_children():
+			if child is CardUI and child != self:
+				# 简单的矩形碰撞检测
+				if child.get_global_rect().has_point(get_global_mouse_position()):
+					print("检测到卡牌重叠: %s -> %s" % [card_data.card_name, child.card_data.card_name])
+					fusion_dropped.emit(card_data, child)
+					scale = Vector2(1.0, 1.0)
+					return
+
+	# 3. 如果无事发生，恢复原位
+	var tween = create_tween()
+	tween.tween_property(self, "global_position", original_position, 0.2)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2)
+	z_index = 0

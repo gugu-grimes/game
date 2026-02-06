@@ -14,6 +14,7 @@ enum BattleState {INIT, PLAYER_TURN, ENEMY_TURN, VICTORY, DEFEAT}
 var current_state: BattleState = BattleState.INIT
 var player_energy: int = 3
 var max_energy: int = 3
+var player_momentum: int = 0
 var turn_count: int = 0
 
 var draw_pile: Array[CardData] = []
@@ -23,7 +24,9 @@ var exhaust_pile: Array[CardData] = []
 
 signal state_changed(new_state: BattleState)
 signal energy_changed(current: int, maximum: int)
+signal momentum_changed(current: int)
 signal turn_started(is_player: bool)
+signal battle_ended(victory: bool)
 
 func _ready() -> void:
 	# 注意：player/enemy/hand_manager 等引用可能在 TestBattle._ready() 中设置
@@ -33,15 +36,21 @@ func _ready() -> void:
 ## 初始化战斗引用（由 TestBattle 调用）
 func setup_battle_refs() -> void:
 	if player:
-		player.died.connect(_on_player_died)
+		if not player.died.is_connected(_on_player_died):
+			player.died.connect(_on_player_died)
 	if enemy:
-		enemy.died.connect(_on_enemy_died)
+		if not enemy.died.is_connected(_on_enemy_died):
+			enemy.died.connect(_on_enemy_died)
 	if end_turn_button:
-		end_turn_button.pressed.connect(end_player_turn)
+		if not end_turn_button.pressed.is_connected(end_player_turn):
+			end_turn_button.pressed.connect(end_player_turn)
 	if hand_manager:
 		if hand_container:
 			hand_manager.hand_container = hand_container
-		hand_manager.card_played.connect(_on_card_played)
+		if not hand_manager.card_played.is_connected(_on_card_played):
+			hand_manager.card_played.connect(_on_card_played)
+		if not hand_manager.fusion_requested.is_connected(_on_fusion_requested):
+			hand_manager.fusion_requested.connect(_on_fusion_requested)
 		print("HandManager 配置完成，hand_container: ", hand_container)
 
 func start_battle(starter_deck: Array[CardData], enemy_data: EnemyData) -> void:
@@ -51,15 +60,34 @@ func start_battle(starter_deck: Array[CardData], enemy_data: EnemyData) -> void:
 	if hand_manager and hand_container and not hand_manager.hand_container:
 		hand_manager.hand_container = hand_container
 	
-	draw_pile = starter_deck.duplicate()
+	# 集成 RunManager
+	if RunManager.current_deck.size() > 0:
+		print("从 RunManager 加载牌组")
+		draw_pile = []
+		for card in RunManager.current_deck:
+			draw_pile.append(card.duplicate())
+		
+		player.max_hp = RunManager.max_hp
+		player.current_hp = RunManager.current_hp
+		max_energy = RunManager.max_energy
+		player_energy = max_energy
+	else:
+		print("使用初始牌组（测试模式）")
+		draw_pile = starter_deck.duplicate()
+		# 初始化 RunManager 以便测试
+		RunManager.start_new_run(starter_deck)
+	
 	draw_pile.shuffle()
 	discard_pile.clear()
 	hand.clear()
 	exhaust_pile.clear()
+	player_momentum = 0
+	
 	if enemy and enemy_data:
 		enemy.max_hp = enemy_data.max_hp
 		enemy.current_hp = enemy_data.max_hp
 		enemy.name = enemy_data.enemy_name
+	
 	change_state(BattleState.PLAYER_TURN)
 	start_player_turn()
 
@@ -73,6 +101,8 @@ func start_player_turn() -> void:
 	print("\n--- 玩家回合 %d ---" % turn_count)
 	player_energy = max_energy
 	energy_changed.emit(player_energy, max_energy)
+	player_momentum = 0
+	momentum_changed.emit(player_momentum)
 	update_energy_ui()
 	draw_cards(5)
 	turn_started.emit(true)
@@ -110,7 +140,7 @@ func play_card(card: CardData, target: CharacterBase = null) -> bool:
 		exhaust_pile.append(card)
 		print("%s 被移出战斗" % card.card_name)
 	else:
-		discard_pile.append(card)
+		_discard_card(card)
 	return true
 
 func execute_card_effect(card: CardData, target: CharacterBase) -> void:
@@ -122,22 +152,45 @@ func execute_card_effect(card: CardData, target: CharacterBase) -> void:
 				damage = int(damage * 0.75)
 			var actual_target = target if target else enemy
 			if actual_target:
+				var momentum_gain = 1 + card.momentum_gain
+				add_momentum(momentum_gain)
+				if card.breach_apply > 0:
+					actual_target.add_breach(card.breach_apply)
 				actual_target.take_damage(damage)
 				show_damage_number(actual_target, damage, "damage")
+				if card.keywords.size() > 0:
+					var stacks = card.secondary_value if card.secondary_value > 0 else 1
+					for keyword in card.keywords:
+						actual_target.add_status(keyword, stacks)
 		CardData.CardType.SKILL:
 			if card.base_value > 0:
 				player.add_block(card.base_value)
 				show_damage_number(player, card.base_value, "block")
 			if card.secondary_value > 0:
 				draw_cards(card.secondary_value)
+			if card.keywords.size() > 0:
+				var stacks = card.secondary_value if card.secondary_value > 0 else 1
+				for keyword in card.keywords:
+					if keyword in ["weak", "vulnerable", "stun", "bleed"]:
+						if enemy:
+							enemy.add_status(keyword, stacks)
+					else:
+						player.add_status(keyword, stacks)
 		CardData.CardType.POWER:
 			if card.keywords.size() > 0:
 				player.add_status(card.keywords[0], card.base_value)
+	
+	if card.type != CardData.CardType.ATTACK and card.momentum_gain != 0:
+		add_momentum(card.momentum_gain)
 
 func end_player_turn() -> void:
 	print("\n玩家结束回合")
-	discard_pile.append_array(hand)
+	# 丢弃手牌
+	if hand.size() > 0:
+		for i in range(hand.size() - 1, -1, -1):
+			_discard_card(hand[i])
 	hand.clear()
+	
 	if hand_manager:
 		hand_manager.clear_hand()
 	player.clear_block()
@@ -161,16 +214,20 @@ func start_enemy_turn() -> void:
 		show_damage_number(enemy, block_amount, "block")
 	await get_tree().create_timer(1.0).timeout
 	enemy.clear_block()
+	enemy.clear_breach()
 	change_state(BattleState.PLAYER_TURN)
 	start_player_turn()
 
 func _on_player_died() -> void:
 	change_state(BattleState.DEFEAT)
 	print("\n=== 战斗失败 ===")
+	battle_ended.emit(false)
 
 func _on_enemy_died() -> void:
 	change_state(BattleState.VICTORY)
 	print("\n=== 战斗胜利 ===")
+	RunManager.update_player_state(player.current_hp)
+	battle_ended.emit(true)
 
 func update_energy_ui() -> void:
 	if energy_label:
@@ -206,3 +263,56 @@ func _on_card_played(card: CardData) -> void:
 		if hand_manager:
 			hand_manager.remove_card(card)
 		update_energy_ui()
+
+func _on_fusion_requested(card_a: CardData, card_b: CardData) -> void:
+	if not hand.has(card_a) or not hand.has(card_b):
+		return
+	if hand_manager:
+		hand_manager.remove_card(card_a)
+		hand_manager.remove_card(card_b)
+	hand.erase(card_a)
+	hand.erase(card_b)
+	var fused = _create_fused_card(card_a, card_b)
+	hand.append(fused)
+	if hand_manager:
+		hand_manager.add_card(fused)
+
+func _create_fused_card(card_a: CardData, card_b: CardData) -> CardData:
+	var fused = CardData.new()
+	var same_name = card_a.card_name == card_b.card_name
+	var base_name = card_a.card_name if same_name else "%s+%s" % [card_a.card_name, card_b.card_name]
+	fused.id = "fused_%s_%s" % [card_a.id, card_b.id]
+	if base_name == "长拳":
+		fused.card_name = "连环长拳"
+	else:
+		fused.card_name = "%s·合" % base_name
+	fused.type = card_a.type
+	fused.cost = card_a.cost + card_b.cost
+	fused.base_value = card_a.base_value + card_b.base_value
+	fused.secondary_value = card_a.secondary_value + card_b.secondary_value
+	fused.momentum_gain = card_a.momentum_gain + card_b.momentum_gain
+	fused.breach_apply = card_a.breach_apply + card_b.breach_apply
+	fused.is_exhaust = card_a.is_exhaust or card_b.is_exhaust
+	fused.is_ethereal = card_a.is_ethereal or card_b.is_ethereal
+	fused.fused_from_cards = [card_a, card_b]
+	match fused.type:
+		CardData.CardType.ATTACK:
+			fused.description = "融合技：造成 %d 点伤害" % fused.base_value
+		CardData.CardType.SKILL:
+			fused.description = "融合技：获得 %d 护体" % fused.base_value
+		CardData.CardType.POWER:
+			fused.description = "融合技：强化效果"
+	return fused
+
+func _discard_card(card: CardData) -> void:
+	if card.fused_from_cards.size() > 0:
+		for base_card in card.fused_from_cards:
+			discard_pile.append(base_card)
+	else:
+		discard_pile.append(card)
+
+func add_momentum(amount: int) -> void:
+	if amount <= 0:
+		return
+	player_momentum += amount
+	momentum_changed.emit(player_momentum)

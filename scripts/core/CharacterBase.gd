@@ -34,6 +34,12 @@ func take_damage(amount: int) -> void:
 	# 检查"内伤"状态（Vulnerable，受伤增加50%）
 	if status_effects.has("vulnerable"):
 		actual_damage = int(actual_damage * 1.5)
+		
+	# 检查"破绽"状态（Breach，每层增加10%伤害）
+	if status_effects.has("breach"):
+		var stacks = status_effects["breach"]
+		var multiplier = 1.0 + (stacks * 0.1)
+		actual_damage = int(actual_damage * multiplier)
 	
 	# 扣血
 	if actual_damage > 0:
@@ -63,6 +69,16 @@ func add_status(status_name: String, stacks: int) -> void:
 	else:
 		status_effects[status_name] = stacks
 	print("%s 获得 %d 层 %s" % [name, stacks, status_name])
+
+## 添加破绽（快捷方法）
+func add_breach(stacks: int) -> void:
+	add_status("breach", stacks)
+
+## 清除破绽
+func clear_breach() -> void:
+	if status_effects.has("breach"):
+		status_effects.erase("breach")
+		print("%s 的破绽已清除" % name)
 
 ## 清除护体（回合结束调用，除非有特殊能力）
 func clear_block() -> void:

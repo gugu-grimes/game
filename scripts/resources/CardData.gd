@@ -19,11 +19,16 @@ enum CardType {
 ## 效果数值（根据卡牌类型解释不同）
 @export var base_value: int = 0 ## 攻击伤害、护体值、或内功层数
 @export var secondary_value: int = 0 ## 如：额外抽牌数、附加状态层数
+@export var momentum_gain: int = 0 ## 额外势获取（默认0）
+@export var breach_apply: int = 0 ## 施加破绽层数（默认0）
 
 ## 关键词标记
 @export var is_exhaust: bool = false ## 打出后移出战斗
 @export var is_ethereal: bool = false ## 回合结束时消失
 @export var keywords: PackedStringArray = [] ## 如 ["连招", "闪避"]
+
+## 融合来源（运行时使用）
+var fused_from_cards: Array[CardData] = []
 
 ## 卡牌效果脚本引用（可选，用于复杂效果）
 @export var effect_script_path: String = ""

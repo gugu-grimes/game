@@ -1,6 +1,9 @@
 extends Node2D
 
-## 测试启动脚本 - 自动开始一场战斗
+## 战斗场景控制器
+## 既可以独立运行（自动开始测试战斗），也可以被 GameLoop 调用
+
+@export var auto_start_battle: bool = true
 
 @onready var battle_manager = $BattleManager
 @onready var player = $Player
@@ -16,7 +19,7 @@ extends Node2D
 @onready var turn_indicator = $UI/TurnIndicator
 
 func _ready() -> void:
-	print("初始化测试战斗场景...")
+	print("初始化战斗场景...")
 	
 	# 设置 BattleManager 的引用
 	battle_manager.player = player
@@ -42,6 +45,11 @@ func _ready() -> void:
 	battle_manager.energy_changed.connect(_on_energy_changed)
 	battle_manager.state_changed.connect(_on_state_changed)
 	
+	if auto_start_battle:
+		print("自动启动测试战斗...")
+		start_test_battle()
+
+func start_test_battle() -> void:
 	# 创建初始卡组和敌人
 	var starter_deck = CardFactory.create_starter_deck()
 	var test_enemy = CardFactory.create_test_enemy()
@@ -59,7 +67,19 @@ func _ready() -> void:
 	# 设置敌人意图
 	_update_enemy_intent()
 	
-	print("战斗已启动！拖拽卡牌向上打出，点击'结束回合'按钮进入敌人回合。")
+	print("战斗已启动！")
+
+# 供外部调用的启动方法
+func start_external_battle(enemy_data: EnemyData) -> void:
+	# 设置敌人名称
+	enemy.name = enemy_data.enemy_name
+	
+	# 启动战斗（传入空 deck，因为 BattleManager 会从 RunManager 读取）
+	var empty_deck: Array[CardData] = []
+	battle_manager.start_battle(empty_deck, enemy_data)
+	
+	_update_pile_counts()
+	_update_enemy_intent()
 
 func _on_energy_changed(current: int, maximum: int) -> void:
 	if energy_label:
@@ -95,7 +115,8 @@ func _update_enemy_intent() -> void:
 	if not enemy_panel:
 		return
 	
-	# 随机生成敌人意图
+	# 简单随机意图，实际应从 BattleManager 或 EnemyData 获取
+	# TODO: 集成真正的意图系统
 	var intent_type = "attack" if randf() < 0.7 else "defend"
 	var value = randi_range(5, 12) if intent_type == "attack" else randi_range(4, 8)
 	

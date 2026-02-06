@@ -16,6 +16,7 @@ var hand_cards: Array[CardUI] = []
 var hovered_card: CardUI = null
 
 signal card_played(card: CardData)
+signal fusion_requested(card_a: CardData, card_b: CardData)
 
 func _ready() -> void:
 	pass
@@ -30,6 +31,7 @@ func add_card(card_data: CardData) -> void:
 	var card_ui: CardUI = card_ui_scene.instantiate()
 	card_ui.set_card_data(card_data)
 	card_ui.card_played.connect(_on_card_played)
+	card_ui.fusion_dropped.connect(_on_card_dropped_on_card)
 	
 	# 连接悬停信号
 	card_ui.mouse_entered.connect(_on_card_hover_enter.bind(card_ui))
@@ -130,3 +132,7 @@ func _on_card_hover_exit(card: CardUI) -> void:
 
 func _on_card_played(card: CardData) -> void:
 	card_played.emit(card)
+
+func _on_card_dropped_on_card(source_card: CardData, target_ui: CardUI) -> void:
+	if target_ui.card_data != source_card:
+		fusion_requested.emit(source_card, target_ui.card_data)

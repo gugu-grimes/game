@@ -11,9 +11,13 @@ config_version=5
 [application]
 
 config/name="we"
-run/main_scene="uid://dh7g8f2lalb1m"
+run/main_scene="res://scenes/GameLoop.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+RunManager="*res://scripts/core/RunManager.gd"
 
 [physics]
 
