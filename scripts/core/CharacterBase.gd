@@ -6,6 +6,7 @@ signal hp_changed(new_hp: int, max_hp: int)
 signal block_changed(new_block: int)
 signal died()
 signal meridians_updated(cards: Array[CardData])
+signal status_changed(status_effects: Dictionary)
 
 ## 属性
 @export var max_hp: int = 100
@@ -71,6 +72,7 @@ func add_status(status_name: String, stacks: int) -> void:
 	else:
 		status_effects[status_name] = stacks
 	print("%s 获得 %d 层 %s" % [name, stacks, status_name])
+	status_changed.emit(status_effects)
 
 ## 添加破绽（快捷方法）
 func add_breach(stacks: int) -> void:
@@ -81,6 +83,7 @@ func clear_breach() -> void:
 	if status_effects.has("breach"):
 		status_effects.erase("breach")
 		print("%s 的破绽已清除" % name)
+		status_changed.emit(status_effects)
 
 ## 清除护体（回合结束调用，除非有特殊能力）
 func clear_block() -> void:

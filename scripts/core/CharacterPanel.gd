@@ -15,6 +15,8 @@ class_name CharacterPanel
 @onready var status_container: HBoxContainer = $VBoxContainer/StatusContainer
 @onready var intent_container: VBoxContainer = $VBoxContainer/IntentContainer # 仅敌人使用
 
+const STATUS_ICON_SCENE = preload("res://scenes/ui/StatusIcon.tscn")
+
 var character: CharacterBase
 
 func _ready() -> void:
@@ -27,6 +29,7 @@ func bind_character(chara: CharacterBase) -> void:
 	if character:
 		character.hp_changed.connect(_on_hp_changed)
 		character.block_changed.connect(_on_block_changed)
+		character.status_changed.connect(_on_status_changed)
 		update_display()
 
 ## 更新显示
@@ -37,6 +40,7 @@ func update_display() -> void:
 	name_label.text = character.name
 	_on_hp_changed(character.current_hp, character.max_hp)
 	_on_block_changed(character.block)
+	_on_status_changed(character.status_effects)
 
 ## HP 变化回调
 func _on_hp_changed(current: int, maximum: int) -> void:
@@ -57,6 +61,19 @@ func _on_hp_changed(current: int, maximum: int) -> void:
 func _on_block_changed(block: int) -> void:
 	block_container.visible = block > 0
 	block_label.text = str(block)
+
+## 状态变化回调
+func _on_status_changed(status_effects: Dictionary) -> void:
+	# 清除旧状态
+	for child in status_container.get_children():
+		child.queue_free()
+	
+	# 添加新状态
+	for status_name in status_effects:
+		var stacks = status_effects[status_name]
+		var icon = STATUS_ICON_SCENE.instantiate()
+		status_container.add_child(icon)
+		icon.setup(status_name, stacks)
 
 ## 设置意图（仅敌人）
 func set_intent(intent_type: String, value: int = 0) -> void:
@@ -88,28 +105,3 @@ func set_intent(intent_type: String, value: int = 0) -> void:
 			intent_label.text = "❓"
 	
 	intent_container.add_child(intent_label)
-
-## 添加状态效果图标
-func add_status_icon(status_name: String, stacks: int) -> void:
-	var status_label = Label.new()
-	status_label.name = status_name
-	
-	match status_name:
-		"vulnerable":
-			status_label.text = "💔%d" % stacks
-			status_label.tooltip_text = "内伤: 受到伤害+50%"
-		"weak":
-			status_label.text = "💪%d" % stacks
-			status_label.tooltip_text = "破绽: 造成伤害-25%"
-		"strength":
-			status_label.text = "⚡%d" % stacks
-			status_label.tooltip_text = "力量: 攻击+%d" % stacks
-		_:
-			status_label.text = "%s:%d" % [status_name, stacks]
-	
-	status_container.add_child(status_label)
-
-## 清除状态图标
-func clear_status_icons() -> void:
-	for child in status_container.get_children():
-		child.queue_free()

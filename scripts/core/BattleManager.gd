@@ -14,7 +14,8 @@ enum BattleState {INIT, PLAYER_TURN, ENEMY_TURN, VICTORY, DEFEAT}
 
 var current_state: BattleState = BattleState.INIT
 var player_energy: int = 3
-var max_energy: int = 3
+var max_energy: int = 10 # 修改最大真气为10
+var energy_regen: int = 3 # 每回合回复3点
 var player_momentum: int = 0
 var turn_count: int = 0
 
@@ -68,12 +69,15 @@ func start_battle(starter_deck: Array[CardData], enemy_data: EnemyData) -> void:
 		
 		player.max_hp = RunManager.max_hp
 		player.current_hp = RunManager.current_hp
-		max_energy = RunManager.max_energy
-		player_energy = max_energy
+		max_energy = RunManager.max_energy # 这里可能需要 RunManager 也更新 max_energy
+		# 临时覆盖为10，如果 RunManager 没更新
+		max_energy = 10
+		player_energy = 3 # 初始真气
 	else:
 		print("使用初始牌组（测试模式）")
 		draw_pile = starter_deck.duplicate()
 		RunManager.start_new_run(starter_deck)
+		player_energy = 3
 	
 	draw_pile.shuffle()
 	discard_pile.clear()
@@ -92,22 +96,33 @@ func start_battle(starter_deck: Array[CardData], enemy_data: EnemyData) -> void:
 		enemy.name = enemy_data.enemy_name
 	
 	change_state(BattleState.PLAYER_TURN)
-	start_player_turn()
+	start_player_turn(true) # 标记为首回合
 
 func change_state(new_state: BattleState) -> void:
 	current_state = new_state
 	state_changed.emit(new_state)
 	print("状态切换: %s" % BattleState.keys()[new_state])
 
-func start_player_turn() -> void:
+func start_player_turn(is_first_turn: bool = false) -> void:
 	turn_count += 1
 	print("\n--- 玩家回合 %d ---" % turn_count)
-	player_energy = max_energy
+	
+	# 回合开始时清除护体（除非有固守状态）
+	player.clear_block()
+	
+	# 真气回复（累积制）
+	if not is_first_turn:
+		player_energy = min(player_energy + energy_regen, max_energy)
+	
 	energy_changed.emit(player_energy, max_energy)
 	player_momentum = 0
 	momentum_changed.emit(player_momentum)
 	update_energy_ui()
-	draw_cards(5)
+	
+	# 抽牌逻辑
+	var draw_count = 5 if is_first_turn else 2
+	draw_cards(draw_count)
+	
 	turn_started.emit(true)
 
 func draw_cards(count: int) -> void:
@@ -219,21 +234,29 @@ func end_player_turn() -> void:
 	# 触发经脉效果
 	trigger_player_meridians()
 	
-	# 丢弃手牌
-	if hand.size() > 0:
-		for i in range(hand.size() - 1, -1, -1):
-			_discard_card(hand[i])
-	hand.clear()
+	# 弃牌逻辑：如果手牌超过8张，丢弃多余的（最左侧/最早抽到的）
+	while hand.size() > 8:
+		var card_to_discard = hand.pop_front()
+		print("手牌上限溢出，丢弃: %s" % card_to_discard.card_name)
+		_discard_card(card_to_discard)
+		if hand_manager:
+			hand_manager.remove_card(card_to_discard)
 	
-	if hand_manager:
-		hand_manager.clear_hand()
-	player.clear_block()
+	# 注意：不再清空所有手牌，保留剩余手牌
+	
+	# 护体保留到敌人回合，不在此处清除
+	# player.clear_block()
+	
 	change_state(BattleState.ENEMY_TURN)
 	await get_tree().create_timer(0.5).timeout
 	start_enemy_turn()
 
 func start_enemy_turn() -> void:
 	print("\n--- 敌人回合 ---")
+	
+	# 敌人回合开始时清除敌人的护体
+	enemy.clear_block()
+	
 	turn_started.emit(false)
 	var action = randi() % 100
 	if action < 70:
@@ -247,7 +270,7 @@ func start_enemy_turn() -> void:
 		enemy.add_block(block_amount)
 		show_damage_number(enemy, block_amount, "block")
 	await get_tree().create_timer(1.0).timeout
-	enemy.clear_block()
+	# enemy.clear_block() # 移到回合开始
 	enemy.clear_breach()
 	change_state(BattleState.PLAYER_TURN)
 	start_player_turn()

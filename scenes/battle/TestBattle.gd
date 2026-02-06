@@ -23,6 +23,9 @@ const MERIDIAN_BAR_SCENE = preload("res://scenes/ui/MeridianBar.tscn")
 func _ready() -> void:
 	print("初始化战斗场景...")
 	
+	# 调整UI布局：将真气球移动到手牌区域上方
+	_reparent_energy_orb()
+	
 	# 创建并添加经脉槽UI
 	var meridian_bar = MERIDIAN_BAR_SCENE.instantiate()
 	$UI/CharacterArea.add_child(meridian_bar)
@@ -57,6 +60,22 @@ func _ready() -> void:
 	if auto_start_battle:
 		print("自动启动测试战斗...")
 		start_test_battle()
+
+func _reparent_energy_orb() -> void:
+	var energy_orb = $UI/TopBar/EnergyOrb
+	var hand_area = $UI/HandArea
+	
+	if energy_orb and hand_area:
+		# 记录当前位置的相对关系并不重要，因为我们要重新定位
+		energy_orb.reparent(hand_area)
+		
+		# 设置锚点为顶部中间
+		energy_orb.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		# 微调位置，向上偏移一点，使其位于手牌区域边界
+		energy_orb.position.y = -40
+		energy_orb.position.x = hand_area.size.x / 2 - energy_orb.size.x / 2
+		
+		print("真气球已移动到手牌区域")
 
 func start_test_battle() -> void:
 	# 创建初始卡组和敌人

@@ -4,9 +4,16 @@ const BATTLE_SCENE = preload("res://scenes/battle/BattleScene.tscn")
 const VICTORY_SCENE = preload("res://scenes/ui/VictoryScreen.tscn")
 const MAP_SCENE = preload("res://scenes/ui/MapScene.tscn")
 const REST_SCENE = preload("res://scenes/ui/RestScene.tscn")
+const EVENT_SCENE = preload("res://scenes/ui/EventScene.tscn")
+const SHOP_SCENE = preload("res://scenes/ui/ShopScene.tscn")
 
 const MapGenerator = preload("res://scripts/core/MapGenerator.gd")
 const MapNodeData = preload("res://scripts/resources/MapNodeData.gd")
+
+# 事件池
+# 事件池
+# 事件池
+const OldBeggarEvent = preload("res://scripts/events/OldBeggarEvent.gd")  # 修正路径
 
 var current_scene_node: Node = null
 
@@ -50,6 +57,10 @@ func _on_map_node_selected(node: Resource) -> void:
 			start_battle(node)
 		MapNodeData.NodeType.REST:
 			show_rest_scene()
+		MapNodeData.NodeType.EVENT:
+			show_event_scene()
+		MapNodeData.NodeType.SHOP:
+			show_shop_scene()
 		_:
 			print("未实现的节点类型，跳过")
 			show_map()
@@ -63,6 +74,30 @@ func show_rest_scene() -> void:
 	current_scene_node = rest_scene
 	
 	rest_scene.rest_completed.connect(show_map)
+
+func show_event_scene() -> void:
+	print("GameLoop: 进入事件")
+	_clear_current_scene()
+	
+	var event_scene = EVENT_SCENE.instantiate()
+	add_child(event_scene)
+	current_scene_node = event_scene
+	
+	# 简单随机：目前只有一个事件
+	var event_def = OldBeggarEvent.new()
+	event_scene.setup_event(event_def)
+	
+	event_scene.event_completed.connect(show_map)
+
+func show_shop_scene() -> void:
+	print("GameLoop: 进入商店")
+	_clear_current_scene()
+	
+	var shop_scene = SHOP_SCENE.instantiate()
+	add_child(shop_scene)
+	current_scene_node = shop_scene
+	
+	shop_scene.shop_exited.connect(show_map)
 
 func start_battle(node: Resource) -> void:
 	print("GameLoop: 进入战斗")
